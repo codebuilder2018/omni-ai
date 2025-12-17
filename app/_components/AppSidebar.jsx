@@ -25,10 +25,11 @@ export function AppSidebar() {
                     <h2 className="font-bold text-xl">Omni Ai</h2>
                 </div>
                 <div>
-                    {theme =='light' ?
+                    {theme =='light' ? (
                         <Button variant="ghost" onClick={()=>setTheme('dark')}><Sun /></Button>
-                        :
-                        <Button variant="ghost" onClick={()=>setTheme('light')}><Moon /></Button>
+                        ) : (
+                            <Button variant="ghost" onClick={()=>setTheme('light')}><Moon /></Button>
+                        )
                     }
                 </div>
             </div>
