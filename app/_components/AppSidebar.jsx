@@ -14,14 +14,18 @@ import Image from "next/image"
 import CreditUsuage from "./CreditUsuage"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "@/config/Firebase"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import moment from "moment"
 import Link from "next/link"
+import axios from "axios"
+import { AiSelectedModelContext } from "@/context/AiSelectedModelContext"
 
 export function AppSidebar() {
   const {theme, setTheme} = useTheme()
   const {user} = useUser()
   const [chatHistory, setChatHistory] = useState([])
+  const [freeMsgCount, setFreeMsgCount] = useState(0)
+  const { messages, setMessages,  aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
 
   const GetChatHistory = async () => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
@@ -39,8 +43,12 @@ export function AppSidebar() {
   }
 
   useEffect(() => {
-    user && GetChatHistory();
+    user && GetChatHistory()
   }, [user])
+
+  useEffect(() => {
+    GetMessageLimit()
+  }, [messages])
 
   const GetLastUserMessageFromChat = (chat) => {
       const allMessages = Object.values(chat.messages).flat();
@@ -59,6 +67,11 @@ export function AppSidebar() {
       }
   }
 
+  const GetMessageLimit = async () => {
+    const messageLimit = await axios.post('/api/message-limit')
+    console.log(messageLimit)
+    setFreeMsgCount(messageLimit?.data?.remainingToken)
+  }
 
   return (
     <Sidebar>
@@ -118,7 +131,7 @@ export function AppSidebar() {
             </SignInButton>
           ) : (
             <div>
-              <CreditUsuage />
+              <CreditUsuage remainingToken={freeMsgCount} />
               <Button className="w-full mb-3" ><Zap/>Upgrade Plan</Button>
               <Button className="flex" variant="ghost">
                 <User2/><h2>Settings</h2>
