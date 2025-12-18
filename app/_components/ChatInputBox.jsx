@@ -5,13 +5,39 @@ import React, { useContext, useEffect, useState } from 'react'
 import AiMultiModel from './AiMultiModel'
 import { AiSelectedModelContext } from '@/context/AiSelectedModelContext'
 import axios from 'axios'
+import { v4 as uuidv4 } from 'uuid'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { db } from '@/config/Firebase'
+import { useUser } from '@clerk/nextjs'
+import { useSearchParams } from 'next/navigation'
 
 function ChatInputBox() {
   const [userInput, setUserInput] =  useState('')
+  const [chatId, setChatId] =  useState()
+  const {user} = useUser()
   const { messages, setMessages,  aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
+
+  const params = useSearchParams()
+
+  useEffect(() => {
+    const id = params.get('chatId')
+    if (id) {
+        setChatId(id);
+    }  else {
+        setChatId(uuidv4())
+        //below needs to tested
+        setMessages({})
+    }
+  }, [params])
+
+  useEffect(() => {
+    if (!chatId) return;
+    GetMessages();
+  }, [chatId]);
 
   const handleSend = async () => {
     if (!userInput.trim()) return;
+    setChatId(uuidv4());
 
     // 1️⃣ Add user message to all enabled models
     setMessages((prev) => {
@@ -41,7 +67,7 @@ function ChatInputBox() {
             ...(prev[parentModel] ?? []),
             {
             role: "assistant",
-            content: "Loading...",
+            content: "loading",
             model: parentModel,
             loading: true,
             },
@@ -90,15 +116,37 @@ function ChatInputBox() {
             { role: "assistant", content: "⚠️ Error fetching response." },
             ],
         }));
+        } finally {
+            console.log(messages)
         }
     });
-    };
+    }
 
     useEffect(() => {
-        console.log(messages);
+        if (!chatId || !user || Object.keys(messages).length === 0) 
+            return;
+        SaveMessages()      
     }, [messages])
 
+    const SaveMessages = async () => {
+        const docRef = doc(db, 'chatHistory', chatId)
 
+        await setDoc(docRef, {
+            chatId: chatId,
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+            messages: messages,
+            lastUpdated: Date.now()
+        },  { merge: true } )
+    }
+
+    const GetMessages = async () => {
+        if (!chatId) return;
+        const docRef = doc(db, 'chatHistory', chatId);
+        const docSnap = await getDoc(docRef);
+        console.log(docSnap.data())
+        const docData = docSnap.data()
+        setMessages(docData?.messages ?? {});
+    }
 
   return (
     <div className='relative min-h-screen'>

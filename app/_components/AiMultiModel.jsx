@@ -42,7 +42,7 @@ function AiMultiModel() {
     }))
   }
 
-  console.log(aiSelectedModels)
+  //console.log(aiSelectedModels)
 
   const onSelecteValue= async(parentModel,value)=>{
     setAiSelectedModels((prev)=>({
@@ -116,9 +116,9 @@ function AiMultiModel() {
                                 <span className='text-sm text-gray-400'>{m.model??model.model}</span>
                             )}
                             <div className='flex gap-3 items-center'>
-                                {m.content == "loading" && <><Loader className='animated-spin'/><span>Thinking...</span></>}
+                                {m.content == "loading" && <><Loader className='animate-spin'/><span>Thinking...</span></>}
                              </div>
-                                {m.content != "loading" && 
+                                {m?.content != "loading" && m?.content &&
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                         {m.content}
                                     </ReactMarkdown>

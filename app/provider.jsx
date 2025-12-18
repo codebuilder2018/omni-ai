@@ -32,11 +32,10 @@ function Provider({children,  ...props}) {
   }
 
   useEffect(()=>{
-    if(aiSelectedModels)
-    {
-      //update to firebase database
-      updateAIModelSelectionPref()
-    }
+    if (!user || !user?.primaryEmailAddress?.emailAddress) 
+      return;
+    //update to firebase database
+    updateAIModelSelectionPref()
   },[aiSelectedModels])
   
   const CreateNewUser = async()=> {
