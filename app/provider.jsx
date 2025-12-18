@@ -6,7 +6,7 @@ import { AppSidebar } from './_components/AppSidebar'
 import AppHeader from './_components/AppHeader'
 import { useUser } from '@clerk/nextjs'
 import { db } from '@/config/Firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { AiSelectedModelContext } from '@/context/AiSelectedModelContext'
 import { DefaultModel } from '@/shared/AiModels'
 import { UserDetailContext } from '@/context/UserDetailContext'
@@ -15,6 +15,7 @@ function Provider({children,  ...props}) {
   const {user} = useUser()
   const [aiSelectedModels,setAiSelectedModels]=useState(DefaultModel)
   const [userDetail,setUserDetail]=useState()
+  const [messages,setMessages]=useState({})
 
   useEffect(()=>{
     if(user)
@@ -22,6 +23,21 @@ function Provider({children,  ...props}) {
       CreateNewUser();
     }
   },[user])
+
+  const updateAIModelSelectionPref = async() => {
+    const userRef = doc(db, "users", user?.primaryEmailAddress?.emailAddress)
+      await updateDoc(userRef,{
+          selectedModelPref:aiSelectedModels
+      })
+  }
+
+  useEffect(()=>{
+    if(aiSelectedModels)
+    {
+      //update to firebase database
+      updateAIModelSelectionPref()
+    }
+  },[aiSelectedModels])
   
   const CreateNewUser = async()=> {
     //If user exists
@@ -32,7 +48,7 @@ function Provider({children,  ...props}) {
     {
       console.log('Existing User');
       const userInfo = userSnap.data();
-      setAiSelectedModels(userInfo?.selectedModelPref);
+      setAiSelectedModels(userInfo?.selectedModelPref??DefaultModel);
       setUserDetail(userInfo);
       return ;
     } else {
@@ -62,7 +78,7 @@ function Provider({children,  ...props}) {
         {...props}
     >
       <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
-        <AiSelectedModelContext.Provider value={{ aiSelectedModels, setAiSelectedModels }}>
+        <AiSelectedModelContext.Provider value={{ aiSelectedModels, setAiSelectedModels, messages,setMessages }}>
           <SidebarProvider>
             <AppSidebar />
             <div className='w-full'>
