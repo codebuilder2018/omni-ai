@@ -12,16 +12,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from '@/components/ui/switch'
-import { Lock, MessageSquare } from 'lucide-react'
+import { Loader, Lock, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AiSelectedModelContext } from '@/context/AiSelectedModelContext'
 import { useUser } from '@clerk/nextjs'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '@/config/Firebase'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function AiMultiModel() {
   const [aiModelList, setAiModelList] = useState(AiModelList)
-  const { aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
+  const { messages, setMessages,  aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
   const {user} = useUser()
 
   const onToggleChange=(model,value)=>{
@@ -30,7 +30,19 @@ function AiMultiModel() {
         m.model===model ? { ...m, enable: value } : m
         )
     )
+    /*setAiSelectedModels((prev)=>
+        prev.map((m)=>m.model===model?{...m,enable:value}:m)   
+    )*/
+   setAiSelectedModels((prev) => ({
+        ...prev,
+        [model]: {
+            ...(prev?.[model] ?? {}),
+            enable: value
+        }
+    }))
   }
+
+  console.log(aiSelectedModels)
 
   const onSelecteValue= async(parentModel,value)=>{
     setAiSelectedModels((prev)=>({
@@ -39,11 +51,6 @@ function AiMultiModel() {
         modelId:value
         }
     }))
-    //update to firebase database
-    const userRef = doc(db, "users", user?.primaryEmailAddress?.emailAddress)
-    await updateDoc(userRef,{
-        selectedModelPref:aiSelectedModels
-    })
   }
 
 
@@ -95,6 +102,32 @@ function AiMultiModel() {
                         <Button><Lock/>Upgrade to unlock</Button>
                     </div>
                 }
+                { model.enable && <div className='flex-1 p-4'>
+                    <div className='flex-1 p-4 space-y-2'>
+                        {messages[model.model]?.map((m,i)=>(
+                        <div key={i}
+                            className={`p-2 rounded-md ${
+                            m.role=="user"
+                                ? "bg-blue-100 text-blue-900"
+                                : "bg-gray-100 text-gray-900"
+                            }`}
+                        >
+                            {m.role=='assistant'&&(
+                                <span className='text-sm text-gray-400'>{m.model??model.model}</span>
+                            )}
+                            <div className='flex gap-3 items-center'>
+                                {m.content == "loading" && <><Loader className='animated-spin'/><span>Thinking...</span></>}
+                             </div>
+                                {m.content != "loading" && 
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {m.content}
+                                    </ReactMarkdown>
+                                }
+                           
+                        </div>
+                        ))}
+                    </div>
+                </div> }
             </div>
         ))}
     </div>
