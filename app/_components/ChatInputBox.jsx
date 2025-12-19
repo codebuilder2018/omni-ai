@@ -8,7 +8,7 @@ import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/config/Firebase'
-import { useUser } from '@clerk/nextjs'
+import { useAuth, useUser } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -20,6 +20,8 @@ function ChatInputBox() {
 
   const params = useSearchParams()
 
+  const {has} = useAuth()
+  
   useEffect(() => {
     const id = params.get('chatId')
     if (id) {
@@ -40,17 +42,19 @@ function ChatInputBox() {
     if (!userInput.trim()) return;
 
     //Call only for free user
-    //Deduct and check token limit
-    const result = await axios.post('/api/message-limit', {
-        token: 1
-    });
+    if(!has({ plan: 'unlimited_plan'})) {
+        //Deduct and check token limit
+        const result = await axios.post('/api/message-limit', {
+            token: 1
+        });
 
-    const remainingToken = result?.data?.remainingToken;
+        const remainingToken = result?.data?.remainingToken;
 
-    if (remainingToken <= 0) {
-        console.log("Limit Exceed");
-        toast.error('Maximum daily token limit exceeded')
-        return;
+        if (remainingToken <= 0) {
+            console.log("Limit Exceed");
+            toast.error('Maximum daily token limit exceeded')
+            return;
+        }
     }
 
     setChatId(uuidv4());

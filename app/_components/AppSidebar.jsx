@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarHeader,
 } from "@/components/ui/sidebar"
-import { SignInButton, useUser } from "@clerk/nextjs"
+import { SignInButton, useAuth, useUser } from "@clerk/nextjs"
 import { Moon, Sun, User2, Zap } from "lucide-react"
 import { useTheme } from "next-themes"
 import Image from "next/image"
@@ -19,6 +19,7 @@ import moment from "moment"
 import Link from "next/link"
 import axios from "axios"
 import { AiSelectedModelContext } from "@/context/AiSelectedModelContext"
+import PricingModel from "./PricingModel"
 
 export function AppSidebar() {
   const {theme, setTheme} = useTheme()
@@ -26,6 +27,8 @@ export function AppSidebar() {
   const [chatHistory, setChatHistory] = useState([])
   const [freeMsgCount, setFreeMsgCount] = useState(0)
   const { messages, setMessages,  aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
+
+  const {has} = useAuth()
 
   const GetChatHistory = async () => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
@@ -68,7 +71,7 @@ export function AppSidebar() {
   }
 
   const GetMessageLimit = async () => {
-    const messageLimit = await axios.post('/api/message-limit')
+    const messageLimit = await axios.post('/api/message-limit', { token: 0 })
     console.log(messageLimit)
     setFreeMsgCount(messageLimit?.data?.remainingToken)
   }
@@ -131,8 +134,14 @@ export function AppSidebar() {
             </SignInButton>
           ) : (
             <div>
-              <CreditUsuage remainingToken={freeMsgCount} />
-              <Button className="w-full mb-3" ><Zap/>Upgrade Plan</Button>
+              { !has({ plan: 'unlimited_plan'}) && 
+                <div>
+                  <CreditUsuage remainingToken={freeMsgCount} /> 
+                  <PricingModel className='w-full'>
+                    <Button className="w-full mb-3" ><Zap/>Upgrade Plan</Button>
+                  </PricingModel>
+                </div>
+              }
               <Button className="flex" variant="ghost">
                 <User2/><h2>Settings</h2>
               </Button>
