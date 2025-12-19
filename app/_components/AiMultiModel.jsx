@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch'
 import { Loader, Lock, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AiSelectedModelContext } from '@/context/AiSelectedModelContext'
-import { useUser } from '@clerk/nextjs'
+import { useAuth, useUser } from '@clerk/nextjs'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -23,6 +23,7 @@ function AiMultiModel() {
   const [aiModelList, setAiModelList] = useState(AiModelList)
   const { messages, setMessages,  aiSelectedModels, setAiSelectedModels } = useContext(AiSelectedModelContext)
   const {user} = useUser()
+  const{has} = useAuth()
 
   const onToggleChange=(model,value)=>{
     setAiModelList((prev)=>
@@ -63,7 +64,7 @@ function AiMultiModel() {
                         <Image src={model.icon} alt={model.model}
                         width={24} height={24}
                         />
-                        {model.enable &&
+                        { !has({ plan: 'unlimited_plan'}) && model.enable &&
                             <Select 
                                 disabled={model.premium}
                                 defaultValue={aiSelectedModels[model.model].modelId} 
@@ -90,19 +91,20 @@ function AiMultiModel() {
                     </div>
                     <div>
                         {model.enable ? (
-                            <Switch checked={model.enable} onCheckedChange={(v)=>onToggleChange(model.model, v)}/>
+                            <Switch disabled={!has({ plan: 'unlimited_plan'}) && model.premium} checked={model.enable} onCheckedChange={(v)=>onToggleChange(model.model, v)}/>
                         ) : (
                             <MessageSquare onClick={(v)=>onToggleChange(model.model, true)}/>
                         )}
                         
                     </div>
                 </div>
-                {model.premium && model.enable &&
+                {!has({ plan: 'unlimited_plan'}) && model.premium && model.enable &&
                     <div className='flex items-center justify-center h-full'>
                         <Button><Lock/>Upgrade to unlock</Button>
                     </div>
                 }
-                { model.enable && <div className='flex-1 p-4'>
+                {model.enable && aiSelectedModels?.[model.model]?.enable && (!model.premium || !has({ plan: 'unlimited_plan'})) && 
+                <div className='flex-1 p-4'>
                     <div className='flex-1 p-4 space-y-2'>
                         {messages[model.model]?.map((m,i)=>(
                         <div key={i}

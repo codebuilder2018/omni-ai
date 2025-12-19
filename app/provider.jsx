@@ -47,6 +47,7 @@ function Provider({children,  ...props}) {
     {
       console.log('Existing User');
       const userInfo = userSnap.data();
+      console.log(JSON.parse(JSON.stringify(userInfo)));
       setAiSelectedModels(userInfo?.selectedModelPref??DefaultModel);
       setUserDetail(userInfo);
       return ;
